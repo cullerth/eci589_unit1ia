@@ -26,7 +26,8 @@ actors <- read_csv("data/dlt2nodes.csv",
                                     expert = col_character(), 
                                     connect = col_character()))
 
-#actors
+
+actors
 
 
 #2b. Create a network object
@@ -34,14 +35,11 @@ network <- graph_from_data_frame(d = ties,
                                  vertices = actors, 
                                  directed = T) 
 
-#network
+network
 
-simple_network <- simplify(network, remove.loops = TRUE) 
-# > simple_network <- simplify(network, remove.loops = TRUE) 
-# Error in simplify(network, remove.loops = TRUE) : 
-#   unused argument (remove.loops = TRUE)
+simple_network <- igraph::simplify(network, remove.loops = TRUE) 
 
-# simple_network
+simple_network
 
 edge_weights <- count(ties, Sender, Receiver)
 
@@ -51,14 +49,9 @@ E(network)$weight <- 1
 
 network
 
-weighted_network <- simplify(network,
+weighted_network <- igraph::simplify(network,
                              edge.attr.comb = list(weight="sum")
 )
-# > weighted_network <- simplify(network,
-#                                +                              edge.attr.comb = list(weight="sum")
-#                                + )
-# Error in simplify(network, edge.attr.comb = list(weight = "sum")) : 
-#   unused argument (edge.attr.comb = list(weight = "sum"))
 
 weighted_network
 
@@ -66,4 +59,97 @@ weighted_network
 #3a. examine basic descriptives
 node_degree <- degree(weighted_network, mode = "all")
 
+hist(node_degree, breaks = 30)
 
+mean(node_degree)
+
+median(node_degree)
+
+in_degree <- degree(weighted_network, mode="in")
+
+hist(in_degree, breaks = 30)
+
+mean(in_degree)
+
+median(in_degree)
+
+out_degree <- degree(weighted_network, mode="out")
+
+hist(out_degree, breaks = 30)
+
+mean(out_degree)
+
+median(out_degree)
+
+weights <- E(weighted_network)$weight
+
+hist(weights, breaks = 10)
+
+mean(weights)
+
+median(weights)
+
+# e_weights <- E(edge_weights)$weight
+# 
+# hist(e_weights, breaks = 10)
+# mean(e_weights)
+# median(e_weights)
+#getting this error: Error in E(edge_weights) : Not a graph object 
+#also just not super sure what is being asked here...
+
+#3b. Make a Sociogram
+plot(weighted_network)
+
+plot(weighted_network,
+     vertex.label = NA)
+
+plot(weighted_network,
+     vertex.label = NA,
+     vertex.size = 1)
+
+plot(weighted_network,
+     vertex.label = NA,
+     vertex.size = node_degree)
+
+plot(weighted_network,
+     vertex.label = NA,
+     vertex.size = node_degree/10)
+
+plot(weighted_network,
+     vertex.label = NA,
+     vertex.size = node_degree*.1,
+     edge.arrow.size = .04)
+
+plot(weighted_network,
+     vertex.label = NA,
+     vertex.size = node_degree*.05,
+     edge.arrow.size = .04,
+     edge.width = .2)
+
+plot(weighted_network,
+     vertex.label = NA,
+     vertex.size = node_degree*.1,
+     edge.arrow.size = .04,
+     edge.width = E(weighted_network)$weight)
+
+plot(weighted_network,
+     vertex.label = NA,
+     vertex.size = node_degree*.05,
+     edge.arrow.size = .05,
+     edge.width = E(weighted_network)$weight/5)
+
+plot(weighted_network,
+     vertex.label = NA,
+     vertex.size = node_degree*.05,
+     edge.arrow.size = .05,
+     edge.width = E(weighted_network)$weight/5,
+     layout = layout_with_fr)
+
+plot(weighted_network,
+     vertex.label = NA,
+     vertex.size = node_degree*.05,
+     edge.arrow.size = .05,
+     edge.width = E(weighted_network)$weight/5,
+     layout = layout_in_circle)
+
+##4. MODEL

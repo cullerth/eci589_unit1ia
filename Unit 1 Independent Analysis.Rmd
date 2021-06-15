@@ -1,0 +1,220 @@
+---
+title: "Unit 1 Independent Analysis"
+author: "Tori Culler"
+date: "6/15/2021"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(igraph)
+library(tidyverse)
+
+ties <- read_csv("data/dlt2edgelist.csv", 
+                 col_types = cols(Sender = col_character(), 
+                                  Receiver = col_character(), 
+                                  `Category Text` = col_skip(), 
+                                  `Comment ID` = col_character(), 
+                                  `Discussion ID` = col_character()))
+
+actors <- read_csv("data/dlt2nodes.csv", 
+                   col_types = cols(UID = col_character(), 
+                                    Facilitator = col_character(), 
+                                    expert = col_character(), 
+                                    connect = col_character()))
+
+```
+
+## PREPARE
+
+**Context** -- this independent analysis builds on the work introduced in our unit 1 walkthrough.
+
+Our walkthrough looked at the social networks in a MOOC-Ed course designed to provide professional development opportunities for educators, supporting their work in developing k-12 digital learning initiatives. This course was offered twice -- our walkthrough last week examined the results of the first offering. My independent analysis this week examines the results of the second offering + compares the two. 
+
+Kellogg, S., Booth, S., & Oliver, K. (2014). [A social network perspective on peer supported learning in MOOCs for educators.](https://github.com/sbkellogg/eci-589/blob/main/unit-1/lit/sna_mooc_irrodl_bjet_articles.pdf) International Review of Research in Open and Distributed Learning, 15(5), 263-289.
+
+## PREPARE
+
+**Research Questions** -- 
+For the walkthrugh, the question we were attempting to answer was:
+
+> *>>To what extent did educators engage with other participants in the discussion forums?*
+
+For this analysis, I am seeking to answer the same question for the second offering of the course. I also want to know...
+
+> *>>Were there differences in engagement across the two cohorts of educators?*
+
+## PREPARE
+
+The packages used for analysis include `igraph` and `tidyverse`.
+
+The data set used will be referred to as DTL 2 and is available [here](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/ZZH3UB). 
+
+The data consists of demographic info provided by participants upon registration + all forms of peer interaction that took place in the forums (i.e. peer discussion, feedback, and reactions (e.g., likes)).
+
+## WRANGLE 
+
+First, we read in the 'edges', or, in plain English, all that info related to the the peer-to-peer interaction just mentioned. The ties, or relationships between the actors/individuals. 
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+ties <- read_csv("data/dlt2edgelist.csv", 
+                 col_types = cols(Sender = col_character(), 
+                                  Receiver = col_character(), 
+                                  `Category Text` = col_skip(), 
+                                  `Comment ID` = col_character(), 
+                                  `Discussion ID` = col_character()))
+
+ties
+
+```
+
+## WRANGLE 
+
+Next, we read in the 'nodes', which contains demographic & other info about the actors/individuals
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+actors <- read_csv("data/dlt2nodes.csv", 
+                   col_types = cols(UID = col_character(), 
+                                    Facilitator = col_character(), 
+                                    expert = col_character(), 
+                                    connect = col_character()))
+
+actors
+
+```
+
+## WRANGLE
+
+Next, we'll combine those two things into a complete network.
+
+We can see that we have 492 actors and 2584 ties -- about the same as from the first offering of the course! (445 and 2529, respectively)
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+network <- graph_from_data_frame(d = ties, 
+                                 vertices = actors, 
+                                 directed = T) 
+
+network
+
+```
+
+## WRANGLE 
+
+Using the `simplify()` function allows us to remove duplicate ties. From 2584 to 2062. 
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+simple_network <- igraph::simplify(network, remove.loops = TRUE) 
+
+simple_network
+
+```
+
+## WRANGLE 
+
+We can also add weights to our edges to help us determine how frequently participants interacted with one another. Looks like participant 100 interacted with participant 302 a total of 4 times, for example. 
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+edge_weights <- count(ties, Sender, Receiver)
+
+edge_weights
+
+E(network)$weight <- 1 
+
+weighted_network <- igraph::simplify(network,
+                             edge.attr.comb = list(weight="sum")
+)
+
+```
+
+## EXPLORE + ANALYZE
+
+A basic look at our node degrees -- i.e., the number of connections individual actors have to others in the network, shows us that most are connected to very few while a few others are connected to a lot of other individuals (some 300+!).
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+node_degree <- degree(weighted_network, mode = "all")
+
+hist(node_degree, breaks = 30)
+
+mean(node_degree)
+
+median(node_degree)
+
+```
+
+## EXPLORE + ANALYZE
+
+But, on average, most are connected to ~8 others, with the median falling at about 3. 
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+
+mean(node_degree)
+
+median(node_degree)
+
+```
+
+For the first offering, folks were marginally more connected (recalling a mean of 8.701124 and a median of 4). 
+
+## EXPLORE + ANALYZE
+
+It's also interesting to take a look at the in-degree (ties received).
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+
+in_degree <- degree(weighted_network, mode="in")
+
+mean(in_degree)
+
+median(in_degree)
+
+```
+
+This is very similar to the first cohort (recalling a mean of 4.350562 and a median of 1)
+
+## EXPLORE + ANALYZE
+
+vs. the out degree (ties sent).
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+
+out_degree <- degree(weighted_network, mode="out")
+
+mean(out_degree)
+
+median(out_degree)
+
+```
+
+Again, pretty similar to that of the first cohort (recalling a mean of 4.350562), though still indicating slightly more connectedness amongst the first cohort with their median of 2. 
+
+## EXPLORE + ANALYZE
+
+A sociogram is where the real magic happens! With a little tweaking, it allows us to see what's going on all at once. What the heck is going on with that half moon shape off to the side? Looks like an oddly well defined group of lurkers to me...actors on the periphery. But what do they have in common? A question for a future analysis!
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+sociogram <- plot(weighted_network,
+     vertex.label = NA,
+     vertex.size = node_degree*.05,
+     edge.arrow.size = .05,
+     edge.width = E(weighted_network)$weight/5,
+     layout = layout_with_fr)
+
+sociogram
+
+```
+
+## COMMUNICATE
+
+In summarizing our findings, lets return to our original research questions: *To what extent did educators engage with other participants in the discussion forums?* // 
+*Were there differences in engagement across the two cohorts of educators?*
+
+Overall, it looks like engagement was similar across the two cohorts, though there were some marked differences. A few of the measures of degree indicated perhaps more connectedness amongst the 2nd cohort. A look at the sociogram for the 2nd cohort, however, paints a slightly different picture: it would appear that there were more actors on the periphery of the network. As pointed out in our walkthrough from last week, "In the DLT 2 course, those on the periphery made up roughly 90% of network!". That is certainly confirmed here. In a future analysis, I would want to dig deeper into what those actors on the periphery have in common.  
